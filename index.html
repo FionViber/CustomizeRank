@@ -327,7 +327,24 @@
         .template-item:hover { background: #3d3d3d; }
         .template-item.active { background: #3d4a50; border-left: 4px solid #7dbece; }
         .template-actions { display: flex; gap: 5px; }
-        .mini-btn { padding: 4px 8px; font-size: 12px; background: #555; border: none; color: white; border-radius: 3px; cursor: pointer; font-family: 'SimHei', sans-serif; }
+        .mini-btn { min-height: 44px; padding: 4px 8px; font-size: 12px; background: #555; border: none; color: white; border-radius: 3px; cursor: pointer; font-family: 'SimHei', sans-serif; }
+
+        @media (max-width: 700px) {
+            body { padding: 16px 8px; }
+            .top-controls { gap: 8px; }
+            .control-btn { min-height: 44px; padding: 8px 11px; }
+            .ranking-container { min-height: 0; padding: 6px; }
+            .tier { flex-direction: column; min-height: 0; }
+            .tier-label { width: 100%; min-height: 56px; border-radius: 0; }
+            .tier-content { min-width: 0; padding: 8px; justify-content: flex-start; }
+            .image-item, .upload-btn, .delete-zone { width: min(120px, calc(50vw - 24px)); }
+            .image-wrapper { width: 100%; height: auto; aspect-ratio: 1; }
+            .image-item img { height: 100%; object-fit: cover; }
+            .tier-separator { padding: 0 8px; }
+            .tier-separator:hover, .tier-separator.drag-over,
+            .tier-separator.has-items { border-radius: 0; }
+            .modal-content { width: calc(100% - 24px); max-height: calc(100vh - 24px); overflow: auto; }
+        }
         .mini-btn:hover { background: #666; }
         .mini-btn.del:hover { background: #dc3545; }
 
