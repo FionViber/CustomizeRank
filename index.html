@@ -79,6 +79,9 @@
         .control-btn.primary { background: #65a6bc; border-color: #65a6bc; }
         .control-btn.primary:hover { background: #7dbece; color: white; }
 
+        [hidden] { display: none !important; }
+        #export-status { font-size: 0.85rem; }
+        .ranking-container:empty { min-height: 0; }
         .ranking-container {
             display: flex;
             flex-direction: column;
@@ -400,10 +403,12 @@
 
     <div class="container">
         <div class="top-controls">
-            <button class="control-btn primary" onclick="openTemplateManager()">📂 模板管理</button>
-            <button class="control-btn" onclick="saveAsImage()">💾 保存图片</button>
+            <button class="control-btn primary" onclick="openTemplateManager()">模板管理</button>
+            <button class="control-btn" id="export-ranking" type="button" onclick="saveAsImage()">保存图片</button>
+            <span id="export-status" role="status"></span>
+            <a id="export-link" class="control-btn" download="从夯到拉排行榜.png" hidden>下载 PNG</a>
             <label class="control-btn">
-                <input type="checkbox" id="show-captions" onchange="toggleCaptions()" checked>
+                <input type="checkbox" id="show-captions" onchange="toggleCaptions(); saveCurrentState()" checked>
                 <span style="margin-left:5px">显示文字</span>
             </label>
         </div>
@@ -428,7 +433,7 @@
         </div>
         
         <div class="page-footer-instructions">
-            <h3>📝 使用说明</h3>
+            <h3>使用说明</h3>
             <ul>
                 <li><strong>骑墙排名</strong>：将图片拖动到两个评级之间的虚线处，可以创建"中间层"。</li>
                 <li><strong>图片文字</strong>：点击图片下方的文字可直接编辑。文字会自动根据长度调整大小（黑体中文）。</li>
@@ -444,7 +449,7 @@
     <div class="modal" id="template-modal">
         <div class="modal-content">
             <button class="close-modal" onclick="closeModal('template-modal')">×</button>
-            <h2 class="modal-title">📂 模板管理</h2>
+            <h2 class="modal-title">模板管理</h2>
             <div style="margin-bottom: 15px; display: flex; gap: 10px;">
                 <input type="text" id="new-template-name" placeholder="输入新模板名称..." style="flex:1; padding: 8px; border-radius: 4px; border: 1px solid #555; background: #444; color: white; font-family: 'SimHei', sans-serif;">
                 <button class="control-btn primary" onclick="createNewTemplate()">新建</button>
@@ -571,7 +576,6 @@
             
             if (data.settings) {
                 document.getElementById('show-captions').checked = data.settings.showCaptions;
-                toggleCaptions();
             }
 
             data.tiers.forEach((tierData, index) => {
@@ -610,6 +614,7 @@
             
             gallery.appendChild(uploadBtn);
             gallery.appendChild(deleteZone);
+            toggleCaptions();
         }
 
         function createTierElement(name, color) {
@@ -621,10 +626,11 @@
                 <div class="tier-label" style="background-color: ${color};">
                     <input type="color" class="color-picker" value="${color}" onchange="updateTierColor(this)">
                     <button class="delete-tier-btn" onclick="deleteTier(this)">×</button>
-                    <span class="tier-name" contenteditable="true" oninput="saveCurrentState()">${name}</span>
+                    <span class="tier-name" contenteditable="true" oninput="saveCurrentState()"></span>
                 </div>
                 <div class="tier-content"></div>
             `;
+            tier.querySelector('.tier-name').textContent = name;
             const label = tier.querySelector('.tier-label');
             label.addEventListener('click', (e) => {
                 if(e.target === label) label.classList.toggle('editing');
@@ -658,12 +664,14 @@
 
             div.innerHTML = `
                 <div class="image-wrapper">
-                    <img src="${src}" draggable="false">
+                    <img alt="" draggable="false">
                 </div>
-                <div class="image-caption" contenteditable="true" spellcheck="false">${captionText}</div>
+                <div class="image-caption" contenteditable="true" spellcheck="false"></div>
             `;
             
+            div.querySelector('img').src = src;
             const caption = div.querySelector('.image-caption');
+            caption.textContent = captionText;
             const adaptFont = () => {
                 const len = caption.innerText.length;
                 let size = 14;
@@ -671,11 +679,10 @@
                 if (len > 8) size = 10;
                 if (len > 12) size = 9;
                 caption.style.fontSize = size + 'px';
-                saveCurrentState();
             };
             
-            caption.addEventListener('input', adaptFont);
-            setTimeout(adaptFont, 0); 
+            caption.addEventListener('input', () => { adaptFont(); saveCurrentState(); });
+            adaptFont(); 
             
             div.querySelector('.image-wrapper').addEventListener('mousedown', (e) => {
                 if(e.button === 0) {}
@@ -824,7 +831,6 @@
             document.querySelectorAll('.image-caption').forEach(el => {
                 el.style.display = show ? 'flex' : 'none';
             });
-            saveCurrentState();
         }
 
         function addNewTier() {
@@ -944,11 +950,12 @@
                     };
                     
                     div.innerHTML = `
-                        <span class="tpl-name">${tpl.name}</span>
+                        <span class="tpl-name"></span>
                         <div class="template-actions">
                             ${tpl.id !== 'default' ? `<button class="mini-btn del" onclick="deleteTemplate('${tpl.id}', event)">删除</button>` : ''}
                         </div>
                     `;
+                    div.querySelector('.tpl-name').textContent = tpl.name;
                     listEl.appendChild(div);
                 });
             };
@@ -1026,16 +1033,33 @@
             return "#" + r + g + b;
         }
 
-        function saveAsImage() {
-            html2canvas(document.querySelector('.ranking-container'), {
-                backgroundColor: '#1a1a1a',
-                scale: 2
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = '从夯到拉排行榜.png';
-                link.href = canvas.toDataURL();
+        async function saveAsImage() {
+            const board = document.getElementById('ranking-container');
+            const button = document.getElementById('export-ranking');
+            const link = document.getElementById('export-link');
+            const status = document.getElementById('export-status');
+            if (link.href && link.hasAttribute('href')) URL.revokeObjectURL(link.href);
+            link.removeAttribute('href');
+            link.hidden = true;
+            if (!board.querySelector('.tier')) {
+                status.textContent = '请先添加评级，再保存图片。';
+                return;
+            }
+            button.disabled = true;
+            status.textContent = '正在生成图片…';
+            try {
+                const canvas = await html2canvas(board, {backgroundColor: '#1a1a1a', scale: 2});
+                const png = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                if (!png) throw new Error('PNG export failed');
+                link.href = URL.createObjectURL(png);
+                link.hidden = false;
+                status.textContent = '图片已生成。';
                 link.click();
-            });
+            } catch {
+                status.textContent = '未能生成图片，请重试。';
+            } finally {
+                button.disabled = false;
+            }
         }
 
         window.addEventListener('load', async () => {
