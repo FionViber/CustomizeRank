@@ -43,6 +43,22 @@
             padding: 0;
         }
 
+        .quick-start {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+            margin: 0 0 14px;
+            padding: 12px 14px;
+            border: 1px solid #404040;
+            background: #222;
+            color: #ccc;
+            line-height: 1.5;
+        }
+
+        .quick-start strong { color: #fff; }
+
         .control-btn {
             background: #444;
             border: 1px solid #666;
@@ -390,6 +406,12 @@
                 <input type="checkbox" id="show-captions" onchange="toggleCaptions()" checked>
                 <span style="margin-left:5px">显示文字</span>
             </label>
+        </div>
+        <div class="quick-start">
+            <strong>开始使用</strong>
+            <span>先添加图片，再拖动图片到评级区域。</span>
+            <button class="control-btn primary" type="button" onclick="document.getElementById('file-input').click()">添加图片</button>
+            <button class="control-btn" type="button" onclick="addNewTier()">添加评级</button>
         </div>
 
         <div class="ranking-container" id="ranking-container">
